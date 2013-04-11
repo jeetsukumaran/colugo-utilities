@@ -80,7 +80,7 @@ std::string textwrap(const std::string& source,
 std::vector<std::string> split(const char * ssrc,
         const char * sep,
         unsigned max_splits,
-        bool trim_tokens=true,
+        bool trim_tokens,
         bool include_empty_tokens) {
     return split(std::string(ssrc), sep, max_splits, include_empty_tokens);
 }
@@ -89,7 +89,7 @@ std::vector<std::string> split(const char * ssrc,
 std::vector<std::string> split(const std::string& src,
         const char * sep,
         unsigned max_splits,
-        bool trim_tokens=true,
+        bool trim_tokens,
         bool include_empty_tokens) {
     std::vector< std::string > v;
     std::string::size_type start_pos = 0;
@@ -118,7 +118,7 @@ std::vector<std::string> split(const std::string& src,
 std::vector<std::string> split_on_any(const char * ssrc,
         const char * sep,
         unsigned max_splits,
-        bool trim_tokens=true,
+        bool trim_tokens,
         bool include_empty_tokens) {
     return split_on_any(std::string(ssrc), sep, max_splits, include_empty_tokens);
 }
@@ -127,7 +127,7 @@ std::vector<std::string> split_on_any(const char * ssrc,
 std::vector<std::string> split_on_any(const std::string& src,
         const char * sep,
         unsigned max_splits,
-        bool trim_tokens=true,
+        bool trim_tokens,
         bool include_empty_tokens) {
     std::vector< std::string > v;
     std::string::size_type start_pos = 0;
