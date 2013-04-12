@@ -38,6 +38,7 @@ void colugo_print(S& stream, const T& arg1, const Types&... args) {
 template <typename... Types>
 void colugo_abort(const Types&... args) {
     colugo_print(std::cerr, args...);
+    std::cerr << std::endl;
 }
 
 } // colugo
