@@ -107,9 +107,9 @@ class Logger {
 
     private:
 
-        template <typename S, typename... Types>
-        void emit_(S& stream, const Types&... args) {
-            Logger::print(stream, args...);
+        template <typename... Types>
+        void emit_(std::ostream & out, const Types&... args) {
+            colugo::stream::write(out, args...);
         }
 
     private:

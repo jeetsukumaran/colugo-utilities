@@ -25,33 +25,33 @@
 
 namespace colugo { namespace stream {
 
-inline void write(std::ostream & stream) {}
+inline void write(std::ostream & out) {}
 
 template <typename T>
-inline void write(std::ostream & stream, const std::vector<T> & arg1) {
+inline void write(std::ostream & out, const std::vector<T> & arg1) {
     for (unsigned long idx = 0; idx < arg1.size(); ++idx) {
         if (idx > 0) {
-            stream << ", ";
+            out << ", ";
         }
-        stream << arg1[idx];
+        out << arg1[idx];
     }
 }
 
 template <typename T>
-inline void write(std::ostream & stream, const T& arg1) {
-    stream << arg1;
+inline void write(std::ostream & out, const T& arg1) {
+    out << arg1;
 }
 
 template <typename T, typename... Types>
-inline void write(std::ostream & stream, const T& arg1, const Types&... args) {
-    stream << arg1;
-    write(stream, args...);
+inline void write(std::ostream & out, const T& arg1, const Types&... args) {
+    out << arg1;
+    write(out, args...);
 }
 
 template <typename T, typename... Types>
-inline void write(std::ostream & stream, const std::vector<T> & arg1, const Types&... args) {
-    write(stream, arg1);
-    write(stream, args...);
+inline void write(std::ostream & out, const std::vector<T> & arg1, const Types&... args) {
+    write(out, arg1);
+    write(out, args...);
 }
 
 } } // colugo::stream
