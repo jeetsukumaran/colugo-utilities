@@ -20,6 +20,9 @@
 #include <map>
 #include <iostream>
 #include <string>
+#include <vector>
+#include <ctime>
+#include "stream.hpp"
 
 #if !defined(COLUGO_LOGGER_HPP)
 #define COLUGO_LOGGER_HPP
@@ -41,8 +44,20 @@ class Logger {
         };
 
     public:
-        Logger(const std::string& name);
-        void add_channel(std::ostream& dest, Logger::LoggingLevel logging_level);
+        Logger(const std::string& name)
+                : name_(name) {
+            this->level_descs_[Logger::LoggingLevel::CRITICAL] = "CRITICAL";
+            this->level_descs_[Logger::LoggingLevel::ERROR]    = "ERROR";
+            this->level_descs_[Logger::LoggingLevel::WARNING]  = "WARNING";
+            this->level_descs_[Logger::LoggingLevel::INFO]     = "INFO";
+            this->level_descs_[Logger::LoggingLevel::DEBUG]    = "DEBUG";
+            this->level_descs_[Logger::LoggingLevel::VERBOSE]  = "VERBOSE";
+            this->level_descs_[Logger::LoggingLevel::VVERBOSE] = "VVERBOSE";
+        }
+
+        void add_channel(std::ostream& dest, Logger::LoggingLevel logging_level) {
+            this->channels_[&dest] = logging_level;
+        }
 
         template <typename... Types>
         void critical(const Types&... args) {
@@ -92,13 +107,9 @@ class Logger {
 
     private:
 
-        template <typename S>
-        void emit_(S&) {}
-
-        template <typename S, typename T, typename... Types>
-        void emit_(S& stream, const T& arg1, const Types&... args) {
-            stream << arg1;
-            this->emit_(stream, args...);
+        template <typename S, typename... Types>
+        void emit_(S& stream, const Types&... args) {
+            Logger::print(stream, args...);
         }
 
     private:
