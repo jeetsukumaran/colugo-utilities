@@ -355,8 +355,8 @@ class OptionParser {
             if (version != NULL) {
                 this->version_.assign(version);
             }
-            this->version_option_ = this->add_switch(&this->show_version_, NULL, "--version", "show program's version number and exit");
-            this->help_option_ = this->add_switch(&this->show_help_, "-h", "--help",  "show this help message and exit");
+            this->version_option_ = this->add_switch(&this->show_version_, NULL, "--version", "Show program's version number and exit.");
+            this->help_option_ = this->add_switch(&this->show_help_, "-h", "--help",  "Show this help message and exit.");
         }
 
         /** Destructor: frees memory associated with OptionArg objects. */
