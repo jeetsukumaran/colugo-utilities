@@ -638,6 +638,7 @@ class OptionParser {
             this->write_usage(out);
             out << std::endl;
             this->write_description(out);
+            out << "\n\n";
             out << "Options:" << std::endl;
             for (std::vector<OptionArg *>::const_iterator oa = this->option_args_.begin();
                     oa != this->option_args_.end();
@@ -671,9 +672,13 @@ class OptionParser {
          * @param out   output stream to which to write description
          * @return      same output stream
          */
-        std::ostream& write_description(std::ostream& out) const {
+        std::ostream& write_description(std::ostream& out, bool wrap=true) const {
             if (this->description_.size() != 0) {
-                out << textutil::textwrap(this->description_, CMDOPTS_LINE_WIDTH, 0, CMDOPTS_OPTION_COL_WIDTH) << "\n" << std::endl;
+                if (wrap) {
+                    out << textutil::textwrap(this->description_, CMDOPTS_LINE_WIDTH, 0, 0);
+                } else {
+                    out << this->description_;
+                }
             }
             return out;
         }

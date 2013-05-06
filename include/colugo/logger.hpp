@@ -23,6 +23,7 @@
 #include <vector>
 #include <ctime>
 #include "stream.hpp"
+#include "textutil.hpp"
 
 #if !defined(COLUGO_LOGGER_HPP)
 #define COLUGO_LOGGER_HPP
@@ -33,30 +34,35 @@ class Logger {
 
     public:
         enum class LoggingLevel {
-            CRITICAL=1,
-            ERROR,
-            WARNING,
-            INFO,
-            DEBUG,
-            VERBOSE,
-            VVERBOSE,
-            NOT_SET=999,
+            NOTSET=0,
+            VVERBOSE=3,
+            VERBOSE=6,
+            DEBUG=10,
+            INFO=20,
+            WARNING=30,
+            ERROR=40,
+            CRITICAL=50,
         };
 
     public:
         Logger(const std::string& name)
                 : name_(name) {
-            this->level_descs_[Logger::LoggingLevel::CRITICAL] = "CRITICAL";
-            this->level_descs_[Logger::LoggingLevel::ERROR]    = "ERROR";
-            this->level_descs_[Logger::LoggingLevel::WARNING]  = "WARNING";
-            this->level_descs_[Logger::LoggingLevel::INFO]     = "INFO";
-            this->level_descs_[Logger::LoggingLevel::DEBUG]    = "DEBUG";
-            this->level_descs_[Logger::LoggingLevel::VERBOSE]  = "VERBOSE";
             this->level_descs_[Logger::LoggingLevel::VVERBOSE] = "VVERBOSE";
+            this->level_descs_[Logger::LoggingLevel::VERBOSE]  = "VERBOSE";
+            this->level_descs_[Logger::LoggingLevel::DEBUG]    = "DEBUG";
+            this->level_descs_[Logger::LoggingLevel::INFO]     = "INFO";
+            this->level_descs_[Logger::LoggingLevel::WARNING]  = "WARNING";
+            this->level_descs_[Logger::LoggingLevel::ERROR]    = "ERROR";
+            this->level_descs_[Logger::LoggingLevel::CRITICAL] = "CRITICAL";
         }
 
-        void add_channel(std::ostream& dest, Logger::LoggingLevel logging_level) {
+        void add_channel(std::ostream& dest,
+                Logger::LoggingLevel logging_level,
+                int timestamp=0,
+                Logger::LoggingLevel decoration_level=Logger::LoggingLevel::NOTSET) {
             this->channels_[&dest] = logging_level;
+            this->channel_time_decoration_[&dest] = timestamp;
+            this->channel_decoration_level_[&dest] = decoration_level;
         }
 
         template <typename... Types>
@@ -97,10 +103,21 @@ class Logger {
         template <typename... Types>
         void log(const Logger::LoggingLevel& message_level, const Types&... args) {
             for (auto & ch_iter : this->channels_) {
-                if (ch_iter.second >= message_level) {
-                    *(ch_iter.first) << this->name_ << ": [" << this->level_descs_[message_level] << "] ";
-                    this->emit_(*(ch_iter.first), args...);
-                    *(ch_iter.first) << std::endl;
+                if (message_level >= ch_iter.second) {
+                    auto & chout = *(ch_iter.first);
+                    chout << "[" << this->name_ << "]";
+                    if (this->channel_time_decoration_[ch_iter.first] > 0) {
+                        std::time(&this->time_struct_);
+                        std::strftime(this->time_str_buffer_, 20,
+                                "%Y-%m-%d %H:%M:%S", std::localtime(&this->time_struct_));
+                        chout << " - " << this->time_str_buffer_;
+                    }
+                    if (message_level == Logger::LoggingLevel::NOTSET || message_level >= this->channel_decoration_level_[ch_iter.first]) {
+                        chout << " - " << this->level_descs_[message_level];
+                    }
+                    chout << " - ";
+                    this->emit_(chout, args...);
+                    chout << std::endl;
                 }
             }
         }
@@ -113,12 +130,15 @@ class Logger {
         }
 
     private:
-        std::string                                         name_;
-        std::map<std::ostream *, Logger::LoggingLevel>      channels_;
-        std::map<Logger::LoggingLevel, const char *>        level_descs_;
+        std::string                                      name_;
+        std::map<std::ostream *, Logger::LoggingLevel>   channels_;
+        std::map<std::ostream *, int>                    channel_time_decoration_;
+        std::map<std::ostream *, Logger::LoggingLevel>   channel_decoration_level_;
+        std::map<Logger::LoggingLevel, const char *>     level_descs_;
+        std::time_t                                      time_struct_;
+        char                                             time_str_buffer_[20];
 
 }; // Logger
-
 
 } // namespace colugo
 

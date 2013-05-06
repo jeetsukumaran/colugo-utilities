@@ -25,6 +25,8 @@
 #include <stdexcept>
 
 #include <sys/stat.h>
+#include <limits.h>
+#include <cstdlib>
 #ifdef WINDOWS
     #include <direct.h>
     #define COLUGO_FILESYS_GETCWD _getcwd
@@ -112,7 +114,7 @@ inline bool is_abs_path(const std::string& path) {
 }
 
 //////////////////////////////////////////////////////////////////////////////
-// Operating-system calls
+// Filesystem queries
 
 inline std::string get_cwd() {
     std::string path(1024,'\0');
@@ -126,11 +128,27 @@ inline std::string get_cwd() {
     return path;
 }
 
-inline bool exists(const std::string path) {
+inline bool exists(const std::string & path) {
   struct COLUGO_FILESYS_STAT buffer;
   return (COLUGO_FILESYS_STAT(path.c_str(), &buffer) == 0);
 }
 
+std::string absolute_path(const std::string & path) {
+#ifdef PATH_MAX
+    char buffer[PATH_MAX];
+    realpath(path.c_str(), buffer);
+    return std::string(buffer);
+#else
+    auto actualpath = realpath(symlinkpath, NULL);
+    if (actualpath != NULL) {
+        std::string resolved_path = actual_path;
+        free(actualpath);
+        return resolved_path;
+    } else {
+        throw std::runtime_error("Failed to get absolute path");
+    }
+#endif
+}
 
 }} // namespace colugo::filesys
 

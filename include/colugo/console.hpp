@@ -35,7 +35,7 @@ inline void out(const Types&... args) {
 }
 
 template <typename... Types>
-inline void out_line(const Types&... args) {
+inline void out_ln(const Types&... args) {
     colugo::console::out(args...);
     std::cout << std::endl;
 }
