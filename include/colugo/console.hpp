@@ -21,6 +21,7 @@
 #define COLUGO_CONSOLE_HPP
 
 #include <iostream>
+#include "textutil.hpp"
 #include "stream.hpp"
 
 namespace colugo { namespace console {
@@ -34,8 +35,17 @@ inline void out(const Types&... args) {
 }
 
 template <typename... Types>
-inline void outln(const Types&... args) {
+inline void out_line(const Types&... args) {
     colugo::console::out(args...);
+    std::cout << std::endl;
+}
+
+template <typename... Types>
+inline void out_wrapped(const Types&... args) {
+    std::ostringstream oss;
+    colugo::stream::write(oss, args...);
+    auto text = colugo::textutil::textwrap(oss.str(), 78);
+    std::cout << text;
     std::cout << std::endl;
 }
 
@@ -45,8 +55,17 @@ inline void err(const Types&... args) {
 }
 
 template <typename... Types>
-inline void errln(const Types&... args) {
+inline void err_line(const Types&... args) {
     colugo::console::err(args...);
+    std::cerr << std::endl;
+}
+
+template <typename... Types>
+inline void err_wrapped(const Types&... args) {
+    std::ostringstream oss;
+    colugo::stream::write(oss, args...);
+    auto text = colugo::textutil::textwrap(oss.str(), 78);
+    std::cerr << text;
     std::cerr << std::endl;
 }
 
