@@ -24,21 +24,26 @@
 #include <string>
 #include <stdexcept>
 
+#include <sys/stat.h>
 #ifdef WINDOWS
     #include <direct.h>
-    #define GETCWD_ _getcwd
+    #define COLUGO_FILESYS_GETCWD _getcwd
+    #define COLUGO_FILESYS_STAT _stat
     static const char * COLUGO_FILESYS_PATH_SEPARATOR = "\\";
 #else
     #include <unistd.h>
-    #define GETCWD_ getcwd
+    #define COLUGO_FILESYS_GETCWD getcwd
+    #define COLUGO_FILESYS_STAT stat
     static const char * COLUGO_FILESYS_PATH_SEPARATOR = "/";
  #endif
 #include <string.h> // for strerror
 
 #include "textutil.hpp"
 
-namespace colugo {
-namespace filesys {
+namespace colugo { namespace filesys {
+
+//////////////////////////////////////////////////////////////////////////////
+// Path manipulation
 
 /**
  * Returns filename (and extension) from supplied path.
@@ -106,9 +111,12 @@ inline bool is_abs_path(const std::string& path) {
     }
 }
 
+//////////////////////////////////////////////////////////////////////////////
+// Operating-system calls
+
 inline std::string get_cwd() {
     std::string path(1024,'\0');
-    while( GETCWD_(&path[0], path.size()) == 0) {
+    while( COLUGO_FILESYS_GETCWD(&path[0], path.size()) == 0) {
         if( errno != ERANGE ) {
             throw std::runtime_error(strerror(errno));
         }
@@ -118,8 +126,12 @@ inline std::string get_cwd() {
     return path;
 }
 
-} // filesys
+inline bool exists(const std::string path) {
+  struct COLUGO_FILESYS_STAT buffer;
+  return (COLUGO_FILESYS_STAT(path.c_str(), &buffer) == 0);
+}
 
-} // colugo
+
+}} // namespace colugo::filesys
 
 #endif
