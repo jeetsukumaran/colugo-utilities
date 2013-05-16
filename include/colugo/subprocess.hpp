@@ -118,8 +118,6 @@ class Subprocess {
             if (!process_stdin.empty()) {
                 this->process_handle_ << process_stdin << redi::peof;
             }
-            while (!this->process_handle_.rdbuf()->exited()) {
-            }
             this->wait();
             return std::make_pair(this->process_stdout_, this->process_stderr_);
         }
@@ -130,6 +128,9 @@ class Subprocess {
             bool finished[2] = { false, false };
             std::ostringstream out_ss;
             std::ostringstream err_ss;
+            while (!this->process_handle_.rdbuf()->exited()) {
+                // wait for child to exit
+            }
             while (!finished[0] || !finished[1]) {
                 if (!finished[0]) {
                     while ((n = this->process_handle_.err().readsome(buf, sizeof(buf))) > 0) {
