@@ -123,41 +123,15 @@ class Subprocess {
         }
 
         int wait() {
-            char buf[1024];
-            std::streamsize n;
-            bool finished[2] = { false, false };
-            std::ostringstream out_ss;
-            std::ostringstream err_ss;
             while (!this->process_handle_.rdbuf()->exited()) {
                 // wait for child to exit
             }
-            while (!finished[0] || !finished[1]) {
-                if (!finished[0]) {
-                    while ((n = this->process_handle_.err().readsome(buf, sizeof(buf))) > 0) {
-                        err_ss.write(buf, n).flush();
-                    }
-                    if (this->process_handle_.eof()) {
-                        finished[0] = true;
-                        if (!finished[1]) {
-                            this->process_handle_.clear();
-                        }
-                    }
-                }
-                if (!finished[1]) {
-                    while ((n = this->process_handle_.out().readsome(buf, sizeof(buf))) > 0) {
-                        out_ss.write(buf, n).flush();
-                    }
-                    if (this->process_handle_.eof()) {
-                        finished[1] = true;
-                        if (!finished[0]) {
-                            this->process_handle_.clear();
-                        }
-                    }
-                }
-            }
+            std::ostringstream out_ss;
+            std::ostringstream err_ss;
+            Subprocess::read_pipes_non_blocking(this->process_handle_, out_ss, err_ss);
             this->process_stdout_ = out_ss.str();
             this->process_stderr_ = err_ss.str();
-            this->process_returncode_ = this->process_handle_.rdbuf()->status();
+            this->process_returncode_ = Subprocess::get_process_returncode(this->process_handle_);
             return this->process_returncode_;
         }
 
@@ -182,13 +156,8 @@ class Subprocess {
         }
 
     private:
-        static std::string read_process(std::istream & ps) {
-            std::ostringstream result;
-            // std::getline(ps, result, '\0');
-            result << ps.rdbuf();
-            return result.str();
-        }
 
+        // process mode
         static redi::pstreambuf::pmode get_process_mode(
                 bool pipe_stdin=true,
                 bool pipe_stdout=true,
@@ -204,6 +173,42 @@ class Subprocess {
                 m |= redi::pstreambuf::pstderr;
             }
             return m;
+        }
+
+        // non-blocking reading of process streams until they are cleared
+        static void read_pipes_non_blocking(pstream & ps, std::ostream & stdout_stream, std::ostream & stderr_stream) {
+            char buf[1024];
+            std::streamsize n;
+            bool finished[2] = { false, false };
+            while (!finished[0] || !finished[1]) {
+                if (!finished[0]) {
+                    while ((n = ps.err().readsome(buf, sizeof(buf))) > 0) {
+                        stderr_stream.write(buf, n).flush();
+                    }
+                    if (ps.eof()) {
+                        finished[0] = true;
+                        if (!finished[1]) {
+                            ps.clear();
+                        }
+                    }
+                }
+                if (!finished[1]) {
+                    while ((n = ps.out().readsome(buf, sizeof(buf))) > 0) {
+                        stdout_stream.write(buf, n).flush();
+                    }
+                    if (ps.eof()) {
+                        finished[1] = true;
+                        if (!finished[0]) {
+                            ps.clear();
+                        }
+                    }
+                }
+            }
+        }
+
+        // process exit code
+        int get_process_returncode(pstream & ps) {
+            return ps.rdbuf()->status();
         }
 
     private:
