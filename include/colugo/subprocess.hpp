@@ -53,6 +53,26 @@ class SubprocessException : public std::exception {
         std::string     message_;
 };
 
+class SubprocessFailedToOpenChildProcessError : public SubprocessException {
+    public:
+        SubprocessFailedToOpenChildProcessError(
+                const std::string & filename,
+                unsigned long line_num,
+                const std::string & message)
+            : SubprocessException(filename, line_num, "Child process failed: " + message) {
+        }
+};
+
+class SubprocessClosedChildProcessError : public SubprocessException {
+    public:
+        SubprocessClosedChildProcessError(
+                const std::string & filename,
+                unsigned long line_num,
+                const std::string & message)
+            : SubprocessException(filename, line_num, "Child process exited: " + message) {
+        }
+};
+
 class Subprocess {
 
     public:
@@ -85,19 +105,47 @@ class Subprocess {
                 : command_(cmd)
                   , process_handle_(cmd, Subprocess::get_process_mode(pipe_stdin, pipe_stdout, pipe_stderr)) {
             if (!this->process_handle_.is_open()) {
-                throw SubprocessException(__FILE__, __LINE__, "Failed to open child process");
+                std::ostringstream o;
+                for (auto & c : this->command_) {
+                    o << " " << c;
+                }
+                // o << "\n";
+                // this->process_handle_.out();
+                // o << this->process_handle_.rdbuf();
+                // this->process_handle_.err();
+                // o << this->process_handle_.rdbuf();
+                throw SubprocessFailedToOpenChildProcessError(__FILE__, __LINE__, o.str());
             }
         }
 
-        const std::string & communicate(const std::string & process_stdin="") {
+        bool verify_open_process() {
+            // std::cerr << "**** " << this->process_handle_.rdbuf()->status() << std::endl;
+            if (!this->process_handle_.is_open() || this->process_handle_.rdbuf()->exited() || this->process_handle_.rdbuf()->status() != 0) {
+                std::ostringstream o;
+                o << "Process has exited with exit code " << this->process_handle_.rdbuf()->status() << ":";
+                for (auto & c : this->command_) {
+                    o << " " << c;
+                }
+                o << "\n";
+                this->process_handle_.out();
+                o << this->process_handle_.rdbuf();
+                this->process_handle_.err();
+                o << this->process_handle_.rdbuf();
+                throw SubprocessClosedChildProcessError(__FILE__, __LINE__, o.str());
+            }
+        }
+
+        std::pair<const std::string, const std::string> communicate(const std::string & process_stdin="") {
+            // this->verify_open_process();
             if (!process_stdin.empty()) {
                 this->process_handle_ << process_stdin << redi::peof;
             }
+            this->process_handle_.out();
             this->process_stdout_ = Subprocess::read_process(this->process_handle_);
             this->process_handle_.err();
             this->process_stderr_ = Subprocess::read_process(this->process_handle_);
             this->process_returncode_ = this->process_handle_.rdbuf()->status();
-            return this->process_stdout_;
+            return std::make_pair(this->process_stdout_, this->process_stderr_);
         }
 
         // void communicate_to_stream(std::stringstream & result, const std::string & process_stdin="") {
@@ -186,11 +234,8 @@ class Subprocess {
 
     private:
         static std::string read_process(std::istream & ps) {
-            std::string buffer;
             std::ostringstream result;
-            while (std::getline(ps, buffer)) {
-                result << buffer;
-            }
+            result << ps.rdbuf();
             return result.str();
         }
 
