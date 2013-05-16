@@ -109,11 +109,6 @@ class Subprocess {
                 for (auto & c : this->command_) {
                     o << " " << c;
                 }
-                // o << "\n";
-                // this->process_handle_.out();
-                // o << this->process_handle_.rdbuf();
-                // this->process_handle_.err();
-                // o << this->process_handle_.rdbuf();
                 throw SubprocessFailedToOpenChildProcessError(__FILE__, __LINE__, o.str());
             }
         }
@@ -123,80 +118,46 @@ class Subprocess {
             if (!process_stdin.empty()) {
                 this->process_handle_ << process_stdin << redi::peof;
             }
-            this->process_handle_.close();
-            this->process_handle_.out();
-            this->process_stdout_ = Subprocess::read_process(this->process_handle_);
-            this->process_handle_.err();
-            this->process_stderr_ = Subprocess::read_process(this->process_handle_);
-            this->process_returncode_ = this->process_handle_.rdbuf()->status();
+            while (!this->process_handle_.rdbuf()->exited()) {
+            }
+            this->wait();
             return std::make_pair(this->process_stdout_, this->process_stderr_);
         }
 
-        // void communicate_to_stream(std::stringstream & result, const std::string & process_stdin="") {
-        //     if (!process_stdin.empty()) {
-        //         this->process_handle_ << process_stdin << redi::peof;
-        //     }
-        //     std::string buffer;
-        //     while (std::getline(this->process_handle_, buffer)) {
-        //         result << buffer;
-        //     }
-        //     this->process_handle_.close();
-        //     this->process_stdout_ = result.str();
-        //     this->process_handle_.err();
-        //     this->process_stderr_ = Subprocess::read_process(this->process_handle_);
-        //     this->process_returncode_ = this->process_handle_.rdbuf()->status();
-        // }
-
-        template <class T=std::string>
-        std::vector<std::vector<T>> communicate_to_table(const std::string & process_stdin="") {
-            std::vector<std::vector<T>> result_table;
-            if (!process_stdin.empty()) {
-                this->process_handle_ << process_stdin << redi::peof;
-            }
-            std::string stdout_str;
-            std::ostringstream stdout_ss;
-            T val;
-            while (std::getline(this->process_handle_, stdout_str)) {
-                result_table.emplace_back();
-                auto & current_row = result_table.back();
-                stdout_ss << stdout_str;
-                std::istringstream line_ss(stdout_str);
-                while (line_ss.good()) {
-                    line_ss >> val;
-                    current_row.push_back(val);
+        int wait() {
+            char buf[1024];
+            std::streamsize n;
+            bool finished[2] = { false, false };
+            std::ostringstream out_ss;
+            std::ostringstream err_ss;
+            while (!finished[0] || !finished[1]) {
+                if (!finished[0]) {
+                    while ((n = this->process_handle_.err().readsome(buf, sizeof(buf))) > 0) {
+                        err_ss.write(buf, n).flush();
+                    }
+                    if (this->process_handle_.eof()) {
+                        finished[0] = true;
+                        if (!finished[1]) {
+                            this->process_handle_.clear();
+                        }
+                    }
+                }
+                if (!finished[1]) {
+                    while ((n = this->process_handle_.out().readsome(buf, sizeof(buf))) > 0) {
+                        out_ss.write(buf, n).flush();
+                    }
+                    if (this->process_handle_.eof()) {
+                        finished[1] = true;
+                        if (!finished[0]) {
+                            this->process_handle_.clear();
+                        }
+                    }
                 }
             }
-            this->process_handle_.close();
-            this->process_stdout_ = stdout_ss.str();
-            this->process_handle_.err();
-            this->process_stderr_ = Subprocess::read_process(this->process_handle_);
+            this->process_stdout_ = out_ss.str();
+            this->process_stderr_ = err_ss.str();
             this->process_returncode_ = this->process_handle_.rdbuf()->status();
-            return result_table;
-        }
-
-        template <class T=std::string>
-        std::vector<T> communicate_to_lines(const std::string & process_stdin="") {
-            std::vector<T> result_rows;
-            if (!process_stdin.empty()) {
-                this->process_handle_ << process_stdin << redi::peof;
-            }
-            std::string stdout_str;
-            std::ostringstream stdout_ss;
-            T val;
-            while (std::getline(this->process_handle_, stdout_str)) {
-                stdout_ss << stdout_str;
-                std::istringstream line_ss(stdout_str);
-                while (line_ss.good()) {
-                    line_ss >> val;
-                    result_rows.push_back(val);
-                }
-            }
-            this->process_handle_.close();
-            this->process_stdout_ = stdout_ss.str();
-            this->process_handle_.err();
-            this->process_stderr_ = Subprocess::read_process(this->process_handle_);
-            this->process_returncode_ = this->process_handle_.rdbuf()->status();
-            return result_rows;
+            return this->process_returncode_;
         }
 
         int returncode() const {
@@ -222,6 +183,7 @@ class Subprocess {
     private:
         static std::string read_process(std::istream & ps) {
             std::ostringstream result;
+            // std::getline(ps, result, '\0');
             result << ps.rdbuf();
             return result.str();
         }
