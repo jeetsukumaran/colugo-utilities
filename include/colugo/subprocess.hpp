@@ -118,28 +118,12 @@ class Subprocess {
             }
         }
 
-        bool verify_open_process() {
-            // std::cerr << "**** " << this->process_handle_.rdbuf()->status() << std::endl;
-            if (!this->process_handle_.is_open() || this->process_handle_.rdbuf()->exited() || this->process_handle_.rdbuf()->status() != 0) {
-                std::ostringstream o;
-                o << "Process has exited with exit code " << this->process_handle_.rdbuf()->status() << ":";
-                for (auto & c : this->command_) {
-                    o << " " << c;
-                }
-                o << "\n";
-                this->process_handle_.out();
-                o << this->process_handle_.rdbuf();
-                this->process_handle_.err();
-                o << this->process_handle_.rdbuf();
-                throw SubprocessClosedChildProcessError(__FILE__, __LINE__, o.str());
-            }
-        }
-
         std::pair<const std::string, const std::string> communicate(const std::string & process_stdin="") {
             // this->verify_open_process();
             if (!process_stdin.empty()) {
                 this->process_handle_ << process_stdin << redi::peof;
             }
+            this->process_handle_.close();
             this->process_handle_.out();
             this->process_stdout_ = Subprocess::read_process(this->process_handle_);
             this->process_handle_.err();
@@ -156,6 +140,7 @@ class Subprocess {
         //     while (std::getline(this->process_handle_, buffer)) {
         //         result << buffer;
         //     }
+        //     this->process_handle_.close();
         //     this->process_stdout_ = result.str();
         //     this->process_handle_.err();
         //     this->process_stderr_ = Subprocess::read_process(this->process_handle_);
@@ -181,6 +166,7 @@ class Subprocess {
                     current_row.push_back(val);
                 }
             }
+            this->process_handle_.close();
             this->process_stdout_ = stdout_ss.str();
             this->process_handle_.err();
             this->process_stderr_ = Subprocess::read_process(this->process_handle_);
@@ -205,6 +191,7 @@ class Subprocess {
                     result_rows.push_back(val);
                 }
             }
+            this->process_handle_.close();
             this->process_stdout_ = stdout_ss.str();
             this->process_handle_.err();
             this->process_stderr_ = Subprocess::read_process(this->process_handle_);
