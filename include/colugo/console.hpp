@@ -74,7 +74,7 @@ inline void err_wrapped(const Types&... args) {
 
 template <typename... Types>
 inline void abort(const Types&... args) {
-    colugo::console::err(std::cerr, args...);
+    colugo::console::err(args...);
     std::cerr << std::endl;
     exit(EXIT_FAILURE);
 }
