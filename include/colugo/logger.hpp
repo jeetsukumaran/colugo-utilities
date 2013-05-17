@@ -42,6 +42,7 @@ class Logger {
             WARNING=30,
             ERROR=40,
             CRITICAL=50,
+            ABORTING=60,
         };
 
     public:
@@ -54,6 +55,7 @@ class Logger {
             this->level_descs_[Logger::LoggingLevel::WARNING]  = "WARNING";
             this->level_descs_[Logger::LoggingLevel::ERROR]    = "ERROR";
             this->level_descs_[Logger::LoggingLevel::CRITICAL] = "CRITICAL";
+            this->level_descs_[Logger::LoggingLevel::ABORTING] = "ABORTING";
         }
 
         void add_channel(std::ostream& dest,
@@ -63,6 +65,12 @@ class Logger {
             this->channels_[&dest] = logging_level;
             this->channel_time_decoration_[&dest] = timestamp;
             this->channel_decoration_level_[&dest] = decoration_level;
+        }
+
+        template <typename... Types>
+        void abort(const Types&... args) {
+            this->log(Logger::LoggingLevel::ABORTING, args...);
+            exit(EXIT_FAILURE);
         }
 
         template <typename... Types>
