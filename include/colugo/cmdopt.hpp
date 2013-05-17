@@ -580,7 +580,30 @@ class OptionParser {
                         }
                     } else {
                         TypedOptionArg<bool>* bool_opt = static_cast< TypedOptionArg<bool> *>(&oa);
-                        bool_opt->process_value(true);
+                        if (arg_value.size() == 0) {
+                            bool_opt->process_value(true);
+                        } else {
+                            arg_value = textutil::lower(arg_value);
+                            if (arg_value == "no"
+                                || arg_value == "n"
+                                || arg_value == "false"
+                                || arg_value == "f"
+                                || arg_value == "0"
+                               ) {
+                                bool_opt->process_value(false);
+                            } else if (arg_value == "yes"
+                                || arg_value == "y"
+                                || arg_value == "true"
+                                || arg_value == "t"
+                                || arg_value == "1"
+                               ) {
+                                bool_opt->process_value(true);
+                            } else {
+                                std::cerr << "Invalid value passed to option " << arg_name << ": ";
+                                std::cerr << "\"" << arg_value << "\"" << std::endl;
+                                exit(1);
+                            }
+                        }
                     }
 
                 } else {
