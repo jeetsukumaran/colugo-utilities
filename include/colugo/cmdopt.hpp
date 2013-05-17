@@ -497,6 +497,7 @@ class OptionParser {
             this->prog_filename_ = filesys::get_path_leaf(argv[0]).c_str();
             for (int i = 1; i < argc; ++i) {
                 if (argv[i][0] == '-') {
+
                     std::string arg_name;
                     std::string arg_value;
 
@@ -526,12 +527,6 @@ class OptionParser {
                             arg_value = arg.substr(2, arg.size());
                         }
                     }
-
-        //             std::map< std::string, OptionArg * >::iterator oai = this->key_opt_map_.find(arg_name);
-        //             if ( oai == this->key_opt_map_.end() ) {
-        //                 std::cerr << "unrecognized option \"" << arg_name << "\"" << std::endl;
-        //                 exit(1);
-        //             }
 
                     std::vector< std::string > matches;
                     for (std::map< std::string, OptionArg * >::iterator oai = this->key_opt_map_.begin();
