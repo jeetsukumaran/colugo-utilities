@@ -133,55 +133,50 @@ class Subprocess {
             }
             this->process_handle_.rdbuf()->peof();
             this->wait(time_out_secs, exception_on_time_out, kill_on_time_out);
-            return std::make_pair(this->process_stdout_, this->process_stderr_);
+            return std::make_pair(this->process_stdout_.str(), this->process_stderr_.str());
         }
 
         int wait(double time_out_secs=-1, bool exception_on_time_out=true, bool kill_on_time_out=true) {
-            std::ostringstream out_ss;
-            std::ostringstream err_ss;
             auto start = std::clock();
             double elapsed = 0.0;
             while (!this->process_handle_.rdbuf()->exited()) {
+                // clear pipes
+                Subprocess::read_pipes_non_blocking(this->process_handle_, this->process_stdout_, this->process_stderr_);
                 if (time_out_secs > 0) {
-                    // if (std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now()-start).count() > time_out_secs) {
+                    // check for time out
                     elapsed = static_cast<double>(std::clock()-start)/CLOCKS_PER_SEC;
                     if (elapsed >= time_out_secs) {
+                        // timed out: grab remaining stuff from pipes
+                        Subprocess::read_pipes_non_blocking(this->process_handle_, this->process_stdout_, this->process_stderr_);
                         if (kill_on_time_out) {
+                            // kill
                             this->process_handle_.rdbuf()->kill();
                         }
                         if (exception_on_time_out) {
+                            // throw exception
                             throw SubprocessTimeOutException(__FILE__, __LINE__);
                         } else {
+                            // do not throw
+                            // quit loop and grab stdout/stderr as if completed
                             break;
                         }
                     }
                 }
-                Subprocess::read_pipes_non_blocking(this->process_handle_, out_ss, err_ss);
             }
-            this->process_stdout_ = out_ss.str();
-            this->process_stderr_ = err_ss.str();
             this->process_returncode_ = Subprocess::get_process_returncode(this->process_handle_);
             return this->process_returncode_;
-        }
-
-        void read_pipes(std::string & o, std::string & e) {
-            std::ostringstream out_ss;
-            std::ostringstream err_ss;
-            Subprocess::read_pipes_non_blocking(this->process_handle_, out_ss, err_ss);
-            o = out_ss.str();
-            e = err_ss.str();
         }
 
         int returncode() const {
             return this->process_returncode_;
         }
 
-        const std::string & get_stdout() const {
-            return this->process_stdout_;
+        std::string get_stdout() const {
+            return this->process_stdout_.str();
         }
 
-        const std::string & get_stderr() const {
-            return this->process_stderr_;
+        std::string get_stderr() const {
+            return this->process_stderr_.str();
         }
 
         std::string get_command_string() const {
@@ -251,8 +246,8 @@ class Subprocess {
     private:
         std::vector<std::string>    command_;
         pstream                     process_handle_;
-        std::string                 process_stdout_;
-        std::string                 process_stderr_;
+        std::ostringstream          process_stdout_;
+        std::ostringstream          process_stderr_;
         int                         process_returncode_;
 
 }; // Subprocess
