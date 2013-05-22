@@ -163,12 +163,11 @@ class Subprocess {
                     }
                 }
             }
-            this->process_returncode_ = Subprocess::get_process_returncode(this->process_handle_);
-            return this->process_returncode_;
+            return this->returncode();
         }
 
         int returncode() const {
-            return this->process_returncode_;
+            return Subprocess::get_process_returncode(this->process_handle_);
         }
 
         std::string get_stdout() const {
@@ -239,7 +238,7 @@ class Subprocess {
         }
 
         // process exit code
-        int get_process_returncode(pstream & ps) {
+        static int get_process_returncode(const pstream & ps) {
             return ps.rdbuf()->status();
         }
 
@@ -248,7 +247,6 @@ class Subprocess {
         pstream                     process_handle_;
         std::ostringstream          process_stdout_;
         std::ostringstream          process_stderr_;
-        int                         process_returncode_;
 
 }; // Subprocess
 
