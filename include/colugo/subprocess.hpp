@@ -162,6 +162,8 @@ class Subprocess {
                     }
                 }
             }
+            // grab anything else coming down the line?
+            Subprocess::read_pipes_non_blocking(this->process_handle_, this->process_stdout_, this->process_stderr_);
             return this->returncode();
         }
 
