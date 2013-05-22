@@ -24,6 +24,7 @@
 #include <string>
 #include <sstream>
 #include <stdexcept>
+#include <ctime>
 #include "pstream.h"
 
 namespace colugo {
@@ -51,6 +52,15 @@ class SubprocessException : public std::exception {
         std::string     filename_;
         unsigned long   line_num_;
         std::string     message_;
+};
+
+class SubprocessTimeOutException : public SubprocessException {
+    public:
+        SubprocessTimeOutException(
+                const std::string & filename,
+                unsigned long line_num)
+            : SubprocessException(filename, line_num, "Child process timed out") {
+        }
 };
 
 class SubprocessFailedToOpenChildProcessError : public SubprocessException {
@@ -113,18 +123,26 @@ class Subprocess {
             }
         }
 
-        std::pair<const std::string, const std::string> communicate(const std::string & process_stdin="") {
+        std::pair<const std::string, const std::string> communicate(const std::string & process_stdin="", double time_out_secs=-1) {
             // this->verify_open_process();
             if (!process_stdin.empty()) {
                 this->process_handle_ << process_stdin << redi::peof;
             }
-            this->wait();
+            this->wait(time_out_secs);
             return std::make_pair(this->process_stdout_, this->process_stderr_);
         }
 
-        int wait() {
+        int wait(double time_out_secs=-1) {
+            auto start = std::clock();
+            double elapsed = 0.0;
             while (!this->process_handle_.rdbuf()->exited()) {
-                // wait for child to exit
+                if (time_out_secs > 0) {
+                    // if (std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now()-start).count() > time_out_secs) {
+                    elapsed = static_cast<double>(std::clock()-start)/CLOCKS_PER_SEC;
+                    if (elapsed >= time_out_secs) {
+                        throw SubprocessTimeOutException(__FILE__, __LINE__);
+                    }
+                }
             }
             std::ostringstream out_ss;
             std::ostringstream err_ss;
