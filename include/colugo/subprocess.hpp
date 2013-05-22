@@ -124,7 +124,7 @@ class Subprocess {
         }
 
         std::pair<const std::string, const std::string> communicate(const std::string & process_stdin="",
-                double time_out_secs=-1,
+                double time_out_secs=0,
                 bool exception_on_time_out=true,
                 bool kill_on_time_out=true) {
             if (!process_stdin.empty()) {
@@ -135,14 +135,14 @@ class Subprocess {
             return std::make_pair(this->process_stdout_.str(), this->process_stderr_.str());
         }
 
-        int wait(double time_out_secs=-1, bool exception_on_time_out=true, bool kill_on_time_out=true) {
+        int wait(double time_out_secs=0, bool exception_on_time_out=true, bool kill_on_time_out=true) {
             auto start = std::clock();
             double elapsed = 0.0;
             while (!this->process_handle_.rdbuf()->exited()) {
                 // clear pipes
                 Subprocess::read_pipes_non_blocking(this->process_handle_, this->process_stdout_, this->process_stderr_);
+                // check for time out
                 if (time_out_secs > 0) {
-                    // check for time out
                     elapsed = static_cast<double>(std::clock()-start)/CLOCKS_PER_SEC;
                     if (elapsed >= time_out_secs) {
                         // timed out: grab remaining stuff from pipes
@@ -158,9 +158,9 @@ class Subprocess {
                             // do not throw
                             // quit loop and grab stdout/stderr as if completed
                             break;
-                        }
-                    }
-                }
+                        } // no throw
+                    } // if elapsed > time_out-secs
+                } // if time out
             }
             // grab anything else coming down the line?
             Subprocess::read_pipes_non_blocking(this->process_handle_, this->process_stdout_, this->process_stderr_);
