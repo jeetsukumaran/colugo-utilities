@@ -91,10 +91,22 @@ class Subprocess {
     public:
 
         /**
-         * Opens a stream initialized to execute `cmd`:
+         * Opens a stream initialized to execute `cmd`, which should be a
+         * vector of strings:
          *
-         *      Subprocess ps({"python", "script.py", "--src", ".", "-d"});
-         *      stdout_str = ps.communicate("the quick brown fox");
+         *      Subprocess ps1({"python", "script.py", "--src", ".", "-d"});
+         *      auto result = ps1.communicate("the quick brown fox");
+         *      std::cout << "Child returned exit status of: " << ps1.returncode() << std::endl;
+         *      std::cout << result.first # child stdout
+         *      std::cerr << result.second # child stderr
+         *
+         *      Subprocess ps2({"python", "another_script.py", "--src", ".", "-d"});
+         *      int ps_exit_status = ps2.wait()
+         *      std::cout << "Child returned exit status of: " << ps_exit_status << std::endl;
+         *      std::string ps_stdout = ps2.get_stdout();
+         *      std::string ps_stderr = ps2.get_stderr();
+         *      std::cout << ps_stdout;
+         *      std::cerr << ps_stderr;
          *
          * @param cmd
          *   A vector of strings representing the command to execute.
