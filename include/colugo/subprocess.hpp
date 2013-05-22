@@ -127,7 +127,6 @@ class Subprocess {
                 double time_out_secs=-1,
                 bool exception_on_time_out=true,
                 bool kill_on_time_out=true) {
-            // this->verify_open_process();
             if (!process_stdin.empty()) {
                 this->process_handle_ << process_stdin; // << redi::peof;
             }
@@ -176,6 +175,16 @@ class Subprocess {
 
         std::string get_stderr() const {
             return this->process_stderr_.str();
+        }
+
+        void clear_stdout() {
+            this->process_stdout_.str("");
+            this->process_stdout_.clear();
+        }
+
+        void clear_stderr() {
+            this->process_stderr_.str("");
+            this->process_stderr_.clear();
         }
 
         std::string get_command_string() const {
