@@ -63,13 +63,13 @@ class OptionArg {
          * @param help          help message
          * @param meta_var      string to display as value in help
          */
-        OptionArg(const char * help=NULL, const char * meta_var=NULL)
+        OptionArg(const char * help=nullptr, const char * meta_var=nullptr)
             : is_switch_(false),
             is_set_(false) {
-            if (help != NULL) {
+            if (help != nullptr) {
                 this->help_ = help;
             }
-            if (meta_var != NULL) {
+            if (meta_var != nullptr) {
                 this->set_meta_var(meta_var);
             }
         }
@@ -82,42 +82,37 @@ class OptionArg {
          * @param   out     stream to write message to
          * @return          output stream
          */
-        std::ostream& write_help(std::ostream& out) const {
-            std::string help_str;
-            help_str += "  ";
+        std::ostream& write_help(std::ostream& out, unsigned int indent_size=2) const {
+            std::string help_def_line(indent_size, ' ');
             if (this->short_flag_.size() > 0) {
-                help_str += this->short_flag_;
+                help_def_line += this->short_flag_;
                 if (!this->is_switch_) {
-                    help_str += " ";
+                    help_def_line += " ";
                     if (this->meta_var_.size() == 0) {
-                        help_str += "VALUE";
+                        help_def_line += "VALUE";
                     } else {
-                        help_str += this->meta_var_;
+                        help_def_line += this->meta_var_;
                     }
                 }
                 if (this->long_flag_.size() > 0) {
-                    help_str += ", ";
+                    help_def_line += ", ";
                 }
             }
             if (this->long_flag_.size() > 0) {
-                help_str += this->long_flag_;
+                help_def_line += this->long_flag_;
                 if (!this->is_switch_) {
-                    help_str += "=";
+                    help_def_line += "=";
                     if (this->meta_var_.size() == 0) {
-                        help_str += "VALUE";
+                        help_def_line += "VALUE";
                     } else {
-                        help_str += this->meta_var_;
+                        help_def_line += this->meta_var_;
                     }
                 }
             }
+            help_def_line += "    ";
+            out << std::left << std::setw(CMDOPTS_OPTION_COL_WIDTH) << help_def_line;
+
             if (this->help_.size() > 0) {
-                if (help_str.size() > CMDOPTS_OPTION_COL_WIDTH-2) {
-                    help_str += "\n";
-                } else {
-                    while (help_str.size() < CMDOPTS_OPTION_COL_WIDTH) {
-                        help_str += " ";
-                    }
-                }
                 std::string help_msg = this->help_;
                 std::string::size_type defval = help_msg.find("%default");
                 std::string replace_val = this->current_value_as_string();
@@ -125,11 +120,24 @@ class OptionArg {
                     help_msg.replace(defval, 8, replace_val.c_str());
                     defval = help_msg.find("%default");
                 }
-                help_str += help_msg;
-                std::string help_desc = textutil::textwrap(help_str, CMDOPTS_LINE_WIDTH, 0, CMDOPTS_OPTION_COL_WIDTH);
-                help_str = help_desc;
+                unsigned current_column = 1;
+                unsigned first_line_indent = 0;
+                if (help_def_line.size() > CMDOPTS_OPTION_COL_WIDTH) {
+                    out << "\n";
+                    first_line_indent = CMDOPTS_OPTION_COL_WIDTH;
+                    current_column = 1;
+                } else {
+                    first_line_indent = 0;
+                    current_column = CMDOPTS_OPTION_COL_WIDTH;
+                }
+                std::string help_desc = textutil::textwrap(
+                        help_msg,
+                        CMDOPTS_LINE_WIDTH,
+                        first_line_indent,
+                        CMDOPTS_OPTION_COL_WIDTH,
+                        current_column);
+                out << help_desc;
             }
-            out << help_str;
             return out;
         }
 
@@ -147,6 +155,10 @@ class OptionArg {
          */
         void set_long_flag(const std::string flag) {
             this->long_flag_ = flag;
+        }
+
+        const std::string & get_long_flag() const {
+            return this->long_flag_;
         }
 
         void set_meta_var(const char*  s) {
@@ -241,17 +253,17 @@ class TypedOptionArg : public OptionArg {
         TypedOptionArg(void * store,
                        const char * short_flag,
                        const char * long_flag,
-                       const char * help=NULL,
-                       const char * meta_var=NULL)
+                       const char * help=nullptr,
+                       const char * meta_var=nullptr)
                 : OptionArg(help, meta_var) {
-            if (store != NULL) {
+            if (store != nullptr) {
                 this->set_store(store);
             }
-            assert( short_flag != NULL || long_flag != NULL);
-            if (short_flag != NULL) {
+            assert( short_flag != nullptr || long_flag != nullptr);
+            if (short_flag != nullptr) {
                 this->set_short_flag(short_flag);
             }
-            if (long_flag != NULL) {
+            if (long_flag != nullptr) {
                 this->set_long_flag(long_flag);
             }
         }
@@ -316,7 +328,7 @@ class TypedOptionArg : public OptionArg {
          * @return current value of argument as string
          */
         virtual std::string current_value_as_string() const {
-            assert(this->store_ != NULL);
+            assert(this->store_ != nullptr);
             std::ostringstream ostr;
             ostr << *this->store_;
             return ostr.str();
@@ -339,24 +351,34 @@ class OptionParser {
         typedef std::vector< std::string >  PosArgs;
 
         /** Constructor. */
-        OptionParser(const char * version=NULL,
-                const char * description=NULL,
-                const char * usage=NULL)
+        OptionParser(const char * version=nullptr,
+                const char * description=nullptr,
+                const char * usage=nullptr)
                 : show_help_(false)
                 , show_version_(false) {
-            if (usage != NULL) {
+            if (usage != nullptr) {
                 this->usage_.assign(usage);
             } else {
                 this->usage_ = "%prog [options] [args]";
             }
-            if (description != NULL) {
+            if (description != nullptr) {
                 this->description_.assign(description);
             }
-            if (version != NULL) {
+            if (version != nullptr) {
                 this->version_.assign(version);
             }
-            this->version_option_ = this->add_switch(&this->show_version_, NULL, "--version", "Show program's version number and exit.");
-            this->help_option_ = this->add_switch(&this->show_help_, "-h", "--help",  "Show this help message and exit.");
+            this->version_option_ = this->add_switch(&this->show_version_,
+                    nullptr,
+                    "--version",
+                    "Show program's version number and exit",
+                    nullptr,
+                    nullptr);
+            this->help_option_ = this->add_switch(&this->show_help_,
+                    "-h",
+                    "--help",
+                    "Show this help message and exit.",
+                    nullptr,
+                    nullptr);
         }
 
         /** Destructor: frees memory associated with OptionArg objects. */
@@ -376,18 +398,20 @@ class OptionParser {
          * Long flags start with two dashes and are followed by one or more
          * characters (e.g., "--filename").
          *
-         * @param  store        pointer to data store that will hold argument
-         * @param  short_flag   short flag, including leading dash
-         * @param  long_flag    long flag, including leading dashes
-         * @param  help         help message
-         * @param  meta_var     string to display as value in help
+         * @param  store               pointer to data store that will hold argument
+         * @param  short_flag          short flag, including leading dash
+         * @param  long_flag           long flag, including leading dashes
+         * @param  help                help message
+         * @param  meta_var            string to display as value in help
+         * @param  option_group_name   string specifying option group name
          */
         template <typename T>
         OptionArg * add_option(void * store,
-                               const char * short_flag=NULL,
-                               const char * long_flag=NULL,
-                               const char * help=NULL,
-                               const char * meta_var=NULL) {
+                               const char * short_flag=nullptr,
+                               const char * long_flag=nullptr,
+                               const char * help=nullptr,
+                               const char * meta_var=nullptr,
+                               const char * option_group_name=nullptr) {
             OptionArg * oa;
             oa = new TypedOptionArg<T>(store, short_flag, long_flag, help, meta_var);
             assert ( oa );
@@ -404,12 +428,17 @@ class OptionParser {
                 this->key_opt_map_.insert(std::make_pair(long_flag, oa));
             }
 
-            if (meta_var != NULL) {
+            if (meta_var != nullptr) {
                 oa->set_meta_var(meta_var);
-            } else if (long_flag != NULL) {
+            } else if (long_flag != nullptr) {
                 oa->set_meta_var(long_flag + 2);
-            } else if (short_flag != NULL) {
+            } else if (short_flag != nullptr) {
                 oa->set_meta_var(short_flag + 1);
+            }
+            if (option_group_name == nullptr) {
+                this->add_to_option_group("", oa);
+            } else {
+                this->add_to_option_group(option_group_name, oa);
             }
 
             return oa;
@@ -422,19 +451,21 @@ class OptionParser {
          * (e.g., "-f").
          * Long flags start with two dashes and are followed by one or more
          * characters (e.g., "--filename").
-         *
-         * @param  store        pointer to data store that will hold argument
-         * @param  short_flag   short flag, including leading dash
-         * @param  long_flag    long flag, including leading dashes
-         * @param  help         help message
-         * @param  meta_var     string to display as value in help
+                                       *
+         * @param  store               pointer to data store that will hold argument
+         * @param  short_flag          short flag, including leading dash
+         * @param  long_flag           long flag, including leading dashes
+         * @param  help                help message
+         * @param  meta_var            string to display as value in help
+         * @param  option_group_name   string specifying option group name
          */
         OptionArg * add_switch(void * store,
-                               const char * short_flag=NULL,
-                               const char * long_flag=NULL,
-                               const char * help=NULL,
-                               const char * meta_var=NULL) {
-            OptionArg * switch_arg = this->add_option<bool>(store, short_flag, long_flag, help, meta_var);
+                               const char * short_flag=nullptr,
+                               const char * long_flag=nullptr,
+                               const char * help=nullptr,
+                               const char * meta_var=nullptr,
+                               const char * option_group_name=nullptr) {
+            OptionArg * switch_arg = this->add_option<bool>(store, short_flag, long_flag, help, meta_var, option_group_name);
             switch_arg->set_is_switch(true);
             return switch_arg;
         }
@@ -584,6 +615,7 @@ class OptionParser {
                                 || arg_value == "false"
                                 || arg_value == "f"
                                 || arg_value == "0"
+                                || arg_value == "-"
                                ) {
                                 bool_opt->process_value(false);
                             } else if (arg_value == "yes"
@@ -591,6 +623,7 @@ class OptionParser {
                                 || arg_value == "true"
                                 || arg_value == "t"
                                 || arg_value == "1"
+                                || arg_value == "+"
                                ) {
                                 bool_opt->process_value(true);
                             } else {
@@ -658,11 +691,20 @@ class OptionParser {
             this->write_description(out);
             out << "\n\n";
             out << "Options:" << std::endl;
-            for (std::vector<OptionArg *>::const_iterator oa = this->option_args_.begin();
-                    oa != this->option_args_.end();
-                    ++oa) {
-                (*oa)->write_help(out);
-                out << std::endl;
+            for (auto & group_name : this->option_group_names_) {
+                int indent_size = 2;
+                auto ogi = this->option_groups_.find(group_name);
+                if (ogi == this->option_groups_.end() || ogi->second.empty()) {
+                    continue;
+                }
+                if (!group_name.empty()) {
+                    out << "\n  " << group_name << ":" << std::endl;
+                    indent_size = 4;
+                }
+                for (auto & oa : ogi->second) {
+                    oa->write_help(out, indent_size);
+                    out << std::endl;
+                }
             }
             return out;
         }
@@ -732,6 +774,14 @@ class OptionParser {
             return *(get_option_ptr(flag));
         }
 
+        void add_to_option_group(const std::string & name, OptionArg * oa) {
+            auto ogiter = this->option_groups_.find(name);
+            if (ogiter == this->option_groups_.end()) {
+                this->option_group_names_.push_back(name);
+            }
+            this->option_groups_[name].push_back(oa);
+        }
+
     private:
         /** stores value of help option arg switch */
         bool                                        show_help_;
@@ -755,6 +805,8 @@ class OptionParser {
         std::map< std::string, OptionArg * >        key_opt_map_;
         /** the program file name */
         std::string                                 prog_filename_;
+        std::vector<std::string>                    option_group_names_;
+        std::map<std::string, std::vector<OptionArg *>> option_groups_;
 };
 
 

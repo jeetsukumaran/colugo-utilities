@@ -100,9 +100,10 @@ inline bool startswith(const std::string & s1, const std::string & s2) {
 inline std::string textwrap(const std::string & source,
         unsigned line_width=78,
         unsigned first_line_indent=0,
-        unsigned subsequent_line_indent=0) {
-    std::string wrapped;
-    unsigned col_count = 1;
+        unsigned subsequent_line_indent=0,
+        unsigned current_column=1) {
+    std::string wrapped(first_line_indent, ' ');
+    unsigned col_count = wrapped.size() + current_column;
     unsigned line_count = 1;
     std::string subsequent_line_indent_str(subsequent_line_indent, ' ');
     for (std::string::const_iterator s = source.begin();
@@ -125,12 +126,7 @@ inline std::string textwrap(const std::string & source,
                 col_count = wrapped.size() - wrap_pos;
             }
         }
-        if (col_count == 1 && line_count == 1 && first_line_indent > 0) {
-            for (unsigned i = 0; i < first_line_indent; ++i) {
-                wrapped += ' ';
-            }
-            col_count += first_line_indent;
-        } else if (col_count == 1 && line_count > 1) {
+        if (col_count == 1 && line_count > 1) {
             wrapped += subsequent_line_indent_str;
             col_count += subsequent_line_indent;
         }
